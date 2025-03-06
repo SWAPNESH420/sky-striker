@@ -1,0 +1,233 @@
+// Game Configuration
+const config = {
+    difficulty: 'easy',
+    zenMode: false,
+    muted: false,
+    stars: 0,
+    dailyProgress: 0
+};
+
+// Canvas Setup
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Game Objects
+const player = {
+    x: canvas.width / 4,
+    y: canvas.height / 2,
+    width: 40,
+    height: 20,
+    speed: 5,
+    tilt: 0,
+    skin: 'default'
+};
+
+const clouds = [];
+const lightningClouds = [];
+const explosions = [];
+const particles = [];
+let score = 0;
+let gameOver = false;
+
+// Audio
+const sounds = {
+    bgm: new Audio('bgm.mp3'),
+    explosion: new Audio('explosion.mp3'),
+    shoot: new Audio('shoot.mp3')
+};
+
+// Initialize Game
+function startGame() {
+    document.getElementById('mainMenu').style.display = 'none';
+    gameOver = false;
+    resetGame();
+    gameLoop();
+}
+
+function resetGame() {
+    score = 0;
+    clouds.length = 0;
+    lightningClouds.length = 0;
+    explosions.length = 0;
+    particles.length = 0;
+    player.x = canvas.width / 4;
+    player.y = canvas.height / 2;
+    config.dailyProgress = 0;
+    updateDailyChallenge();
+}
+
+// Game Loop
+function gameLoop() {
+    if (gameOver) return;
+
+    update();
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+function update() {
+    handleInput();
+    movePlayer();
+    spawnClouds();
+    updateClouds();
+    checkCollisions();
+    updateParticles();
+    updateScore();
+}
+
+function render() {
+    // Background
+    ctx.fillStyle = '#87CEEB';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw player
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.tilt * Math.PI / 180);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(-player.width/2, -player.height/2, player.width, player.height);
+    ctx.restore();
+
+    // Draw clouds
+    clouds.forEach(cloud => {
+        ctx.fillStyle = '#A9A9A9';
+        ctx.fillRect(cloud.x, cloud.y, cloud.width, cloud.height);
+    });
+
+    // Draw lightning clouds
+    lightningClouds.forEach(cloud => {
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(cloud.x, cloud.y, cloud.width, cloud.height);
+    });
+
+    // Draw particles
+    particles.forEach(particle => {
+        ctx.fillStyle = particle.color;
+        ctx.fillRect(particle.x, particle.y, 2, 2);
+    });
+
+    // Draw explosions
+    explosions.forEach(explosion => {
+        ctx.fillStyle = explosion.color;
+        ctx.beginPath();
+        ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI*2);
+        ctx.fill();
+    });
+}
+
+// Input Handling
+function handleInput() {
+    // Touch controls
+    canvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        player.y = touch.clientY - player.height/2;
+    });
+
+    // Desktop controls
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') player.y -= player.speed;
+        if (e.key === 'ArrowDown') player.y += player.speed;
+    });
+}
+
+// Cloud Spawning
+function spawnClouds() {
+    if (Math.random() < 0.01 + (config.difficulty === 'hard' ? 0.02 : 0)) {
+        clouds.push({
+            x: canvas.width,
+            y: Math.random() * canvas.height,
+            width: 50,
+            height: 30,
+            speed: 2 + (config.difficulty === 'medium' ? 1 : config.difficulty === 'hard' ? 2 : 0)
+        });
+    }
+
+    if (Math.random() < 0.005 && config.difficulty !== 'easy') {
+        lightningClouds.push({
+            x: canvas.width,
+            y: Math.random() * canvas.height,
+            width: 60,
+            height: 40,
+            health: 3
+        });
+    }
+}
+
+// Collision Detection
+function checkCollisions() {
+    clouds.forEach((cloud, index) => {
+        if (rectCollision(player, cloud)) {
+            if (!config.zenMode) endGame();
+            else clouds.splice(index, 1);
+            config.dailyProgress++;
+            updateDailyChallenge();
+        }
+    });
+
+    lightningClouds.forEach((cloud, index) => {
+        if (rectCollision(player, cloud)) {
+            if (!config.zenMode) endGame();
+            else lightningClouds.splice(index, 1);
+        }
+    });
+}
+
+function rectCollision(a, b) {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
+}
+
+// Game Over
+function endGame() {
+    gameOver = true;
+    document.getElementById('gameOver').style.display = 'block';
+    document.getElementById('finalDistance').textContent = Math.floor(score/60);
+    document.getElementById('earnedStars').textContent = Math.floor(score/3000);
+    config.stars += Math.floor(score/3000);
+    localStorage.setItem('sky_stars', config.stars);
+}
+
+// UI Functions
+function showMainMenu() {
+    document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'block';
+}
+
+function setDifficulty(level) {
+    config.difficulty = level;
+    document.querySelectorAll('#mainMenu button').forEach(btn => 
+        btn.style.borderColor = btn.textContent.toLowerCase() === level ? '#FFF' : '#555'
+    );
+}
+
+function toggleMute() {
+    config.muted = !config.muted;
+    Object.values(sounds).forEach(sound => sound.muted = config.muted);
+}
+
+function updateDailyChallenge() {
+    document.querySelector('#dailyChallenge progress').value = config.dailyProgress;
+    if (config.dailyProgress >= 20) {
+        config.stars += 2;
+        config.dailyProgress = 0;
+        alert('Daily challenge complete! +2 ★');
+    }
+}
+
+// Save/Load
+function loadGame() {
+    const saved = localStorage.getItem('sky_save');
+    if (saved) Object.assign(config, JSON.parse(saved));
+    document.getElementById('stars').textContent = config.stars;
+}
+
+function saveGame() {
+    localStorage.setItem('sky_save', JSON.stringify(config));
+}
+
+// Initial Load
+loadGame();

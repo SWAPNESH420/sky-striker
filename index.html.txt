@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sky Striker</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; background: linear-gradient(#87CEEB, #1E90FF); }
+        .ui { position: absolute; color: white; font-family: Arial; user-select: none; }
+        #mainMenu { top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        #hud { top: 20px; left: 20px; }
+        #gameOver { display: none; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        button { background: #222; color: white; border: 2px solid #555; padding: 10px 20px; margin: 5px; cursor: pointer; }
+        button:hover { border-color: #FFF; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="ui">
+        <h1>Sky Streaker</h1>
+        <button onclick="startGame()">Start Game</button>
+        <button onclick="toggleZenMode()">Zen Mode</button>
+        <button onclick="showSkins()">Plane Skins</button>
+        <div>
+            <button onclick="setDifficulty('easy')">Easy</button>
+            <button onclick="setDifficulty('medium')">Medium</button>
+            <button onclick="setDifficulty('hard')">Hard</button>
+        </div>
+        <button onclick="toggleMute()">Mute Game Audio</button>
+        <div id="dailyChallenge">
+            Daily Challenge: Dodge 20 storm clouds<br>
+            <progress value="0" max="20"></progress><br>
+            Reward: 2 ★
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="ui">
+        <div>Distance: <span id="distance">0</span>m</div>
+        <div>★ <span id="stars">0</span></div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOver" class="ui">
+        <h2>Game Over</h2>
+        <p>Distance: <span id="finalDistance">0</span>m</p>
+        <p>Stars Earned: <span id="earnedStars">0</span> ★</p>
+        <button onclick="restartGame()">Play Again</button>
+        <button onclick="showMainMenu()">Main Menu</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
